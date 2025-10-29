@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Anonymous Team</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', monospace; }
+    body { background-color: #000; color: #0f0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+    
+    .logo { position: absolute; top: 15px; left: 15px; font-size: 14px; font-weight: bold; color: #0f0; text-shadow: 0 0 5px #0f0; z-index: 100; }
+    .admin-link { position: absolute; top: 15px; right: 15px; font-size: 12px; color: #0f0; text-decoration: underline; cursor: pointer; }
+    .user-info { position: absolute; top: 15px; right: 120px; font-size: 12px; color: #0a0; }
+
+    #intro { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; text-align: center; animation: glow 2s infinite alternate; }
+    #intro h1 { font-size: 3rem; margin-bottom: 30px; }
+    .next-btn { background: none; border: 2px solid #0f0; color: #0f0; padding: 12px 30px; font-size: 1.2rem; cursor: pointer; text-transform: uppercase; transition: 0.3s; display: flex; align-items: center; gap: 10px; }
+    .next-btn:hover { background: #0f0; color: #000; box-shadow: 0 0 15px #0f0; }
+
+    #video-page { display: none; flex-direction: column; height: 100vh; justify-content: center; align-items: center; padding: 20px; }
+    .video-container { position: relative; width: 100%; max-width: 800px; padding-bottom: 56.25%; height: 0; box-shadow: 0 0 20px #0f0; background: #000; }
+    .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    .play-button { 
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0, 255, 0, 0.2); border: 3px solid #0f0; color: #0f0; 
+      width: 80px; height: 80px; border-radius: 50%; font-size: 2rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px #0f0;
+      transition: all 0.3s ease; z-index: 10;
+    }
+    .play-button:hover { background: #0f0; color: #000; transform: translate(-50%, -50%) scale(1.1); }
+    .play-button.hidden { opacity: 0; pointer-events: none; }
+
+    .upload-info { margin-top: 15px; font-size: 0.9rem; color: #0a0; font-style: italic; }
+    .no-video { font-size: 1.2rem; color: #f00; text-align: center; }
+
+    .folder-selector { margin-bottom: 20px; width: 100%; max-width: 800px; }
+    #publicFolderSelect { width: 100%; padding: 12px; background: #000; color: #0f0; border: 1px solid #0f0; font-size: 1rem; }
+    .public-video-list { max-height: 300px; overflow-y: auto; border: 1px solid #0f0; margin-top: 10px; background: #000; padding: 10px; display: none; }
+    .public-video-item { display: flex; align-items: center; gap: 10px; padding: 8px; cursor: pointer; border-bottom: 1px solid #0a0; transition: 0.2s; }
+    .public-video-item:hover { background: #0f0; color: #000; }
+    .public-video-item.selected { background: #0f0; color: #000; font-weight: bold; }
+    .video-thumb { width: 80px; height: 45px; object-fit: cover; border: 1px solid #0f0; box-shadow: 0 0 5px #0f0; }
+
+    #admin-panel { display: none; flex-direction: column; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
+    .admin-container { background: #111; padding: 30px; border: 2px solid #0f0; border-radius: 10px; width: 100%; max-width: 500px; box-shadow: 0 0 20px #0f0; }
+    .admin-container h1 { text-align: center; margin-bottom: 20px; text-shadow: 0 0 10px #0f0; }
+    input, button, select { width: 100%; padding: 12px; margin: 10px 0; background: #000; color: #0f0; border: 1px solid #0f0; font-size: 1rem; }
+    button { background: #0f0; color: #000; cursor: pointer; font-weight: bold; transition: 0.3s; }
+    button:hover { background: #000; color: #0f0; box-shadow: 0 0 15px #0f0; }
+    .back-link { margin-top: 20px; text-align: center; }
+    .back-link a { color: #0f0; text-decoration: underline; font-size: 0.9rem; }
+    .error { color: #f00; font-size: 0.9rem; text-align: center; margin: 10px 0; }
+    .delete-btn { background: #f00 !important; margin-top: 5px; }
+    .delete-btn:hover { background: #900 !important; }
+    .logout-btn { background: #333; color: #0f0; font-size: 0.8rem; padding: 8px; margin-top: 10px; }
+
+    .video-folder { margin-top: 20px; }
+    .folder-icon { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; color: #0f0; cursor: pointer; margin-bottom: 10px; }
+    .folder-icon::before { content: 'Folder'; font-size: 1.5rem; }
+    .video-list { max-height: 300px; overflow-y: auto; border: 1px solid #0f0; padding: 10px; background: #000; }
+    .video-list-item { display: flex; align-items: center; gap: 10px; padding: 8px; cursor: pointer; border-bottom: 1px solid #0a0; transition: 0.2s; }
+    .video-list-item:hover { background: #0f0; color: #000; }
+    .video-list-item.selected { background: #0f0; color: #000; }
+    .search-input { width: 100%; padding: 12px; margin: 10px 0; background: #000; color: #0f0; border: 1px solid #0f0; font-size: 1rem; }
+
+    @keyframes glow {
+      from { text-shadow: 0 0 10px #0f0; }
+      to { text-shadow: 0 0 20px #0f0, 0 0 30px #0f0; }
+    }
+    .hidden { display: none !important; }
+    .disabled { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+  <div class="logo">Anonymous team</div>
+  <div class="admin-link" id="adminLink" onclick="showAdmin()">Admin Panel</div>
+  <div class="user-info" id="userInfo"></div>
+
+  <div id="intro">
+    <h1>hello im MR.sula</h1>
+    <button class="next-btn" onclick="showVideoPage()">
+      next <span class="next-icon">Right Arrow</span>
+    </button>
+  </div>
+
+  <div id="video-page">
+    <div class="folder-selector">
+      <select id="publicFolderSelect" onchange="loadPublicFolderVideos()">
+        <option value="">Select a Video Folder</option>
+      </select>
+      <div class="public-video-list" id="publicVideoList"></div>
+    </div>
+
+    <div class="video-container" id="videoContainer">
+      <iframe id="youtubeVideo" src="" allow="encrypted-media" allowfullscreen></iframe>
+      <div class="play-button" id="playButton" onclick="playVideo()">Play</div>
+      <div class="no-video hidden" id="noVideoMessage">වීඩියෝ තෝරා නැත</div>
+    </div>
+    <div class="upload-info">upload by MR.sula</div>
+  </div>
+
+  <div id="admin-panel">
+    <div class="admin-container">
+      <h1>Admin Login</h1>
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="adminPassword" placeholder="Password" />
+      <button onclick="loginAdmin()">Login</button>
+      <p class="error" id="loginError"></p>
+
+      <div id="adminControls" class="hidden">
+        <h1>YouTube ID Update</h1>
+        <input type="text" id="videoID" placeholder="Enter YouTube Video ID" />
+        <button onclick="saveVideoID()">Save & Update</button>
+        <p style="margin-top: 15px;">Current ID: <span id="currentID">Not set</span></p>
+        
+        <div class="video-folder">
+          <h2>Manage Video Folders</h2>
+          <div id="folderCreateSection">
+            <input type="text" id="newFolderName" placeholder="New folder name" />
+            <button onclick="createFolder()">Create Folder</button>
+          </div>
+
+          <div style="display: flex; gap: 5px;">
+            <select id="folderSelect" onchange="loadVideoList()" style="flex: 1;">
+              <option value="">Select a folder</option>
+            </select>
+            <button class="delete-btn" id="deleteFolderBtn" onclick="deleteFolder()">Delete</button>
+          </div>
+
+          <input type="text" id="searchVideo" class="search-input" placeholder="Search video ID" oninput="searchVideos()" />
+          <div class="folder-icon" onclick="toggleVideoList()">Video Folder</div>
+          <div class="video-list hidden" id="videoList"></div>
+          <div id="addVideoSection">
+            <input type="text" id="newVideoID" placeholder="Add video ID" />
+            <button onclick="addVideoToFolder()">Add to Folder</button>
+          </div>
+        </div>
+        
+        <button class="logout-btn" onclick="logout()">Logout</button>
+        <div class="back-link"><a href="#" onclick="backToSite()">Back to Site</a></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let player;
+    let currentUser = null;
+
+    // === USER CONFIG ===
+    const USERS = {
+      "admin":   { pass: "admin123", role: "full" },
+      "editor":  { pass: "edit456",  role: "edit" },
+      "viewer":  { pass: "view789",  role: "view" }
+    };
+
+    // Auto login from URL
+    function checkAutoLogin() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const user = urlParams.get('user');
+      const pass = urlParams.get('pass');
+      if (user && pass && USERS[user] && USERS[user].pass === pass) {
+        loginUser(user, USERS[user].role);
+        history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
+    function loginUser(username, role) {
+      currentUser = { username, role };
+      document.getElementById('userInfo').textContent = `Logged in: ${username} (${role})`;
+      document.getElementById('admin-panel').style.display = 'flex';
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('video-page').classList.add('hidden');
+      document.getElementById('adminLink').classList.add('hidden');
+
+      document.getElementById('adminControls').classList.remove('hidden');
+      document.querySelector('#admin-panel h1').style.display = 'none';
+      document.querySelector('#admin-panel input[type="text"]').style.display = 'none';
+      document.querySelector('#admin-panel input[type="password"]').style.display = 'none';
+      document.querySelector('#admin-panel button[onclick="loginAdmin()"]').style.display = 'none';
+      document.getElementById('loginError').textContent = '';
+
+      applyPermissions(role);
+      loadCurrentID();
+      loadFolderList();
+      loadVideoList();
+    }
+
+    function applyPermissions(role) {
+      const isFull = role === 'full';
+      const isEdit = isFull || role === 'edit';
+      document.getElementById('folderCreateSection').classList.toggle('disabled', !isFull);
+      document.getElementById('deleteFolderBtn').classList.toggle('disabled', !isFull);
+      document.getElementById('addVideoSection').classList.toggle('disabled', !isEdit);
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('userInfo').textContent = '';
+      backToSite();
+    }
+
+    function loginAdmin() {
+      const username = document.getElementById('username').value.trim();
+      const pass = document.getElementById('adminPassword').value;
+      const error = document.getElementById('loginError');
+      if (USERS[username] && USERS[username].pass === pass) {
+        loginUser(username, USERS[username].role);
+      } else {
+        error.textContent = "Invalid username or password!";
+      }
+    }
+
+    function loadVideoID() { return localStorage.getItem('youtubeVideoID') || null; }
+    function loadVideoFolders() { return JSON.parse(localStorage.getItem('videoFolders')) || {}; }
+    function saveVideoFolders(folders) { localStorage.setItem('videoFolders', JSON.stringify(folders)); }
+    function getThumbnailUrl(videoID) { return `https://img.youtube.com/vi/${videoID}/mqdefault.jpg`; }
+
+    function updateVideo() {
+      const videoID = loadVideoID();
+      const iframe = document.getElementById('youtubeVideo');
+      const playButton = document.getElementById('playButton');
+      const noVideoMessage = document.getElementById('noVideoMessage');
+      
+      if (videoID) {
+        iframe.src = `https://www.youtube.com/embed/${videoID}?enablejsapi=1&rel=0`;
+        iframe.classList.remove('hidden');
+        playButton.classList.add('hidden'); // Hide button if video exists
+        noVideoMessage.classList.add('hidden');
+        loadPublicFolderList();
+      } else {
+        iframe.src = ''; iframe.classList.add('hidden'); playButton.classList.add('hidden'); noVideoMessage.classList.remove('hidden');
+      }
+    }
+
+    function showVideoPage() {
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('video-page').style.display = 'flex';
+      updateVideo();
+      loadPublicFolderList();
+    }
+
+    function showAdmin() {
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('video-page').classList.add('hidden');
+      document.getElementById('adminLink').classList.add('hidden');
+      document.getElementById('admin-panel').style.display = 'flex';
+    }
+
+    function backToSite() {
+      document.getElementById('admin-panel').style.display = 'none';
+      document.getElementById('intro').classList.remove('hidden');
+      document.getElementById('adminLink').classList.remove('hidden');
+      document.getElementById('adminControls').classList.add('hidden');
+      document.getElementById('loginError').textContent = '';
+      document.getElementById('username').value = '';
+      document.getElementById('adminPassword').value = '';
+      document.getElementById('videoList').classList.add('hidden');
+    }
+
+    function loadCurrentID() {
+      const savedID = localStorage.getItem('youtubeVideoID') || "Not set";
+      document.getElementById('currentID').textContent = savedID;
+      document.getElementById('videoID').value = savedID === "Not set" ? "" : savedID;
+    }
+
+    function saveVideoID() {
+      const videoID = document.getElementById('videoID').value.trim();
+      if (!videoID) return alert("Please enter a YouTube Video ID!");
+      localStorage.setItem('youtubeVideoID', videoID);
+      alert("Video ID saved!");
+      loadCurrentID();
+      updateVideo();
+    }
+
+    function createFolder() {
+      const folderName = document.getElementById('newFolderName').value.trim();
+      if (!folderName) return alert("Please enter a folder name!");
+      const folders = loadVideoFolders();
+      if (folders[folderName]) return alert("Folder already exists!");
+      folders[folderName] = [];
+      saveVideoFolders(folders);
+      document.getElementById('newFolderName').value = '';
+      loadFolderList();
+      loadPublicFolderList();
+      alert("Folder created!");
+    }
+
+    function deleteFolder() {
+      const folderSelect = document.getElementById('folderSelect');
+      const selectedFolder = folderSelect.value;
+      if (!selectedFolder) return alert("Please select a folder to delete!");
+      if (!confirm(`Delete folder "${selectedFolder}"?`)) return;
+
+      const folders = loadVideoFolders();
+      const currentID = loadVideoID();
+      if (folders[selectedFolder].includes(currentID)) {
+        localStorage.removeItem('youtubeVideoID');
+        updateVideo();
+      }
+      delete folders[selectedFolder];
+      saveVideoFolders(folders);
+
+      folderSelect.value = '';
+      document.getElementById('videoList').classList.add('hidden');
+      document.getElementById('videoList').innerHTML = '';
+      loadFolderList();
+      loadPublicFolderList();
+      alert(`Folder "${selectedFolder}" deleted!`);
+    }
+
+    function loadFolderList() {
+      const folderSelect = document.getElementById('folderSelect');
+      const folders = loadVideoFolders();
+      folderSelect.innerHTML = '<option value="">Select a folder</option>';
+      Object.keys(folders).forEach(folderName => {
+        const option = document.createElement('option');
+        option.value = folderName;
+        option.textContent = folderName;
+        folderSelect.appendChild(option);
+      });
+    }
+
+    function loadPublicFolderList() {
+      const folderSelect = document.getElementById('publicFolderSelect');
+      const folders = loadVideoFolders();
+      folderSelect.innerHTML = '<option value="">Select a Video Folder</option>';
+      Object.keys(folders).forEach(folderName => {
+        const option = document.createElement('option');
+        option.value = folderName;
+        option.textContent = folderName;
+        folderSelect.appendChild(option);
+      });
+
+      const currentID = loadVideoID();
+      if (currentID) {
+        Object.keys(folders).forEach(folderName => {
+          if (folders[folderName].includes(currentID)) {
+            folderSelect.value = folderName;
+            loadPublicFolderVideos();
+          }
+        });
+      }
+    }
+
+    function loadPublicFolderVideos() {
+      const folderSelect = document.getElementById('publicFolderSelect');
+      const selectedFolder = folderSelect.value;
+      const videoList = document.getElementById('publicVideoList');
+      const currentID = loadVideoID();
+
+      if (!selectedFolder) {
+        videoList.style.display = 'none';
+        videoList.innerHTML = '';
+        return;
+      }
+
+      const folders = loadVideoFolders();
+      const videos = folders[selectedFolder] || [];
+      videoList.innerHTML = '';
+      videoList.style.display = 'block';
+
+      if (videos.length === 0) {
+        videoList.innerHTML = '<div style="padding: 10px; color: #f00;">No videos in this folder</div>';
+        return;
+      }
+
+      videos.forEach(videoID => {
+        const item = document.createElement('div');
+        item.className = 'public-video-item';
+        if (videoID === currentID) item.classList.add('selected');
+
+        const thumb = document.createElement('img');
+        thumb.src = getThumbnailUrl(videoID);
+        thumb.alt = 'Thumbnail';
+        thumb.className = 'video-thumb';
+        thumb.onerror = () => thumb.src = 'https://img.youtube.com/vi/invalid/hqdefault.jpg';
+
+        const text = document.createElement('span');
+        text.textContent = videoID;
+
+        item.appendChild(thumb);
+        item.appendChild(text);
+        item.onclick = () => selectPublicVideo(videoID);
+        videoList.appendChild(item);
+      });
+    }
+
+    function selectPublicVideo(videoID) {
+      localStorage.setItem('youtubeVideoID', videoID);
+      updateVideo();
+      loadPublicFolderVideos();
+      if (player && videoID) {
+        player.cueVideoById(videoID);
+        playVideo();
+      }
+    }
+
+    function toggleVideoList() {
+      const videoList = document.getElementById('videoList');
+      videoList.classList.toggle('hidden');
+    }
+
+    function searchVideos() {
+      const searchQuery = document.getElementById('searchVideo').value.trim().toLowerCase();
+      const videoList = document.getElementById('videoList');
+      videoList.innerHTML = '';
+      const folders = loadVideoFolders();
+      
+      if (searchQuery) {
+        const results = [];
+        Object.keys(folders).forEach(folderName => {
+          folders[folderName].forEach(videoID => {
+            if (videoID.toLowerCase().includes(searchQuery)) {
+              results.push({ folder: folderName, videoID });
+            }
+          });
+        });
+        if (results.length === 0) {
+          videoList.innerHTML = '<div style="padding: 5px; color: #f00;">No videos found</div>';
+        } else {
+          results.forEach(({ folder, videoID }) => {
+            videoList.appendChild(createVideoItem(videoID, folder));
+          });
+        }
+        videoList.classList.remove('hidden');
+      } else {
+        const selectedFolder = document.getElementById('folderSelect').value;
+        if (selectedFolder) {
+          loadVideoList();
+        } else {
+          videoList.classList.add('hidden');
+        }
+      }
+    }
+
+    function createVideoItem(videoID, folder = '') {
+      const item = document.createElement('div');
+      item.className = 'video-list-item';
+
+      const thumb = document.createElement('img');
+      thumb.src = getThumbnailUrl(videoID);
+      thumb.alt = 'Thumb';
+      thumb.className = 'video-thumb';
+      thumb.onerror = () => thumb.src = 'https://img.youtube.com/vi/invalid/hqdefault.jpg';
+
+      const text = document.createElement('span');
+      text.textContent = folder ? `${videoID} (in ${folder})` : videoID;
+
+      item.appendChild(thumb);
+      item.appendChild(text);
+      item.onclick = () => selectVideo(videoID);
+      return item;
+    }
+
+    function loadVideoList() {
+      const folderSelect = document.getElementById('folderSelect');
+      const selectedFolder = folderSelect.value;
+      const videoList = document.getElementById('videoList');
+      videoList.innerHTML = '';
+      if (!selectedFolder) {
+        videoList.classList.add('hidden');
+        return;
+      }
+      const folders = loadVideoFolders();
+      const videos = folders[selectedFolder] || [];
+      if (videos.length === 0) {
+        videoList.innerHTML = '<div style="padding: 5px; color: #f00;">No videos in this folder</div>';
+      } else {
+        videos.forEach(videoID => {
+          videoList.appendChild(createVideoItem(videoID, selectedFolder));
+        });
+      }
+      videoList.classList.remove('hidden');
+    }
+
+    function addVideoToFolder() {
+      const folderSelect = document.getElementById('folderSelect');
+      const selectedFolder = folderSelect.value;
+      const newVideoID = document.getElementById('newVideoID').value.trim();
+      if (!selectedFolder) return alert("Please select a folder!");
+      if (!newVideoID) return alert("Please enter a YouTube Video ID!");
+      const folders = loadVideoFolders();
+      if (!folders[selectedFolder].includes(newVideoID)) {
+        folders[selectedFolder].push(newVideoID);
+        saveVideoFolders(folders);
+        loadVideoList();
+        loadPublicFolderList();
+        document.getElementById('newVideoID').value = '';
+        alert("Video added to folder!");
+      } else {
+        alert("This video ID is already in the folder!");
+      }
+    }
+
+    function selectVideo(videoID) {
+      document.getElementById('videoID').value = videoID;
+      saveVideoID();
+    }
+
+    // === PLAY VIDEO & HIDE BUTTON FOREVER ===
+    function playVideo() {
+      const videoID = loadVideoID();
+      if (!videoID) return alert("No video selected!");
+
+      const playButton = document.getElementById('playButton');
+      playButton.classList.add('hidden'); // Hide immediately
+
+      if (player) player.playVideo();
+    }
+
+    // === YOUTUBE PLAYER API ===
+    function onYouTubeIframeAPIReady() {
+      const videoID = loadVideoID();
+      if (videoID) {
+        player = new YT.Player('youtubeVideo', {
+          events: {
+            'onReady': () => {
+              document.getElementById('playButton').classList.add('hidden');
+            },
+            'onStateChange': (event) => {
+              const playButton = document.getElementById('playButton');
+              if (event.data === YT.PlayerState.PLAYING) {
+                playButton.classList.add('hidden');
+              }
+              // Button stays hidden forever
+            }
+          }
+        });
+      }
+    }
+
+    // Load YouTube API
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    window.onload = checkAutoLogin;
+  </script>
+
+</body>
+</html>
